@@ -46,6 +46,16 @@ typedef void (^NavigatorUserMediaSuccessCallback)(RTCMediaStream *mediaStream);
   return constraints;
 }
 
+// Use a singleton for this, since subsequent calls can take upwards of 9 seconds!
+- (RTCAVFoundationVideoSource *)defaultSource {
+    static dispatch_once_t once;
+    static RTCAVFoundationVideoSource *sharedSource;
+    dispatch_once(&once, ^{
+        sharedSource = [self.peerConnectionFactory avFoundationVideoSourceWithConstraints:[self defaultMediaStreamConstraints]];
+    });
+    return sharedSource;
+}
+
 /**
  * Initializes a new {@link RTCAudioTrack} which satisfies specific constraints,
  * adds it to a specific {@link RTCMediaStream}, and reports success to a
@@ -265,7 +275,7 @@ RCT_EXPORT_METHOD(getUserMedia:(NSDictionary *)constraints
 
   if (videoDevice) {
     // TODO: Actually use constraints...
-    RTCAVFoundationVideoSource *videoSource = [self.peerConnectionFactory avFoundationVideoSourceWithConstraints:[self defaultMediaStreamConstraints]];
+    RTCAVFoundationVideoSource *videoSource = [self defaultSource];
     // FIXME The effort above to find a videoDevice value which satisfies the
     // specified constraints was pretty much wasted. Salvage facingMode for
     // starters because it is kind of a common and hence important feature on
